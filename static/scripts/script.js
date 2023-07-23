@@ -1,0 +1,167 @@
+let isPulsating = false;
+
+function togglePulsatingEffect() {
+    const pulsatingCircle = document.querySelector('.pulsating-circle');
+    const microphoneIcon = document.querySelector('.microphone-icon');
+    const dotIcon = document.querySelector('.dot-icon');
+    if (isPulsating) {
+        pulsatingCircle.classList.remove('active');
+        pulsatingCircle.style.backgroundColor = 'white';
+        microphoneIcon.style.color = 'black';
+        microphoneIcon.style.display = 'block';
+        dotIcon.style.display = 'none';
+        isPulsating = false;
+        stopRecording();
+    } else {
+        pulsatingCircle.classList.add('active');
+        pulsatingCircle.style.backgroundColor = 'red';
+        dotIcon.style.color = 'white';
+        microphoneIcon.style.display = 'none';
+        dotIcon.style.display = 'block';
+        isPulsating = true;
+        startRecording();
+    }
+}
+
+
+document.querySelectorAll('.transcript-btn').forEach(function(button) {
+    button.addEventListener('click', function() {
+        const transcriptText = button.parentElement.nextElementSibling.querySelector('.transcript-text');
+        const ipaText = transcriptText.parentElement.nextElementSibling.querySelector('.ipa-text');
+        const metadata = button.previousElementSibling; // get the metadata element
+        transcriptText.textContent = 'Transcription text goes here';
+        ipaText.textContent = 'IPA equivalent goes here';
+        metadata.textContent = 'Metadata goes here'; // add the metadata
+    });
+});
+
+
+let mediaRecorder;
+let recordedChunks = [];
+
+function startRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+    .then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+
+        mediaRecorder.ondataavailable = function(e) {
+            recordedChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = function() {
+            let blob = new Blob(recordedChunks, {
+                type: 'audio/mp3'
+            });
+            let url = URL.createObjectURL(blob);
+            recordedChunks = [];
+
+            let card = $('<div/>', { class: 'card' }).append(
+                $('<div/>', { class: 'audio-row' }).append(
+                    $('<audio/>', { controls: '' }).append(
+                        $('<source/>', { src: url, type: 'audio/mpeg' }),
+                        'Your browser does not support the audio element.'
+                    ),
+                    $('<p/>', { class: 'audio-metadata' }),
+                    $('<button/>', { class: 'transcript-btn', text: 'Transcript', click: showTranscript })
+                ),
+                $('<div/>', { class: 'transcript-row' }).append(
+                    $('<p/>', { class: 'transcript-text' })
+                ),
+                $('<div/>', { class: 'ipa-row' }).append(
+                    $('<p/>', { class: 'ipa-text' })
+                )
+            );
+
+            $('.container').append(card);
+        };
+    })
+    .catch(err => {
+        console.error('getUserMedia() failed: ', err);
+    });
+}
+
+function stopRecording() {
+    if (mediaRecorder) {
+        mediaRecorder.stop();
+        mediaRecorder=null;
+    }
+}
+
+function showTranscript_() {
+    const audioElement = $(this).parent().find('audio source');
+    const url = audioElement.attr('src'); // Get the URL of the audio blob
+    console.log(url);
+    // Fetch the blob data
+    if(false)
+    fetch(url)
+        .then(res => res.blob())
+        .then(blob => {
+            // Create a new FormData instance
+            let formData = new FormData();
+            
+            // Add the blob to the FormData instance
+            formData.append('audio', blob, 'audio.mp3');
+            
+            // Define the options for the fetch request
+            let options = {
+                method: 'POST',
+                body: formData
+            };
+            
+            // Send the POST request
+            fetch('https://your-api-endpoint', options)
+                .then(response => response.json())
+                .then(data => {
+                    // The response data from the API should be handled here.
+                    // This is where you would update the transcript and IPA fields.
+                    const transcriptText = $(this).parent().next().find('.transcript-text');
+                    const ipaText = transcriptText.parent().next().find('.ipa-text');
+                    transcriptText.text(data.transcript); // Assuming the response data has a 'transcript' field
+                    ipaText.text(data.ipa); // Assuming the response data has a 'ipa' field
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        });
+
+
+}
+
+
+function showTranscript() {
+    const audioElement = $(this).parent().find('audio source');
+    const url = audioElement.attr('src'); // Get the URL of the audio blob
+
+    // Fetch the blob data
+    fetch(url)
+        .then(res => res.blob())
+        .then(blob => {
+            // Create a new FormData instance
+            let formData = new FormData();
+            
+            // Add the blob to the FormData instance
+            formData.append('audio', blob, 'audio.mp3');
+            
+            // Define the options for the fetch request
+            let options = {
+                method: 'POST',
+                body: formData
+            };
+            
+            // Send the POST request
+            fetch('/transcript', options)
+                .then(response => response.json())
+                .then(data => {
+                    // The response data from the API should be handled here.
+                    // This is where you would update the transcript and IPA fields.
+                    const transcriptText = $(this).parent().next().find('.transcript-text');
+                    const ipaText = transcriptText.parent().next().find('.ipa-text');
+                    transcriptText.text(data.transcript); // Assuming the response data has a 'transcript' field
+                    ipaText.text(data.ipa); // Assuming the response data has a 'ipa' field
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        });
+}
