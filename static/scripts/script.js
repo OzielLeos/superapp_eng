@@ -55,31 +55,101 @@ function startRecording() {
             });
             let url = URL.createObjectURL(blob);
             recordedChunks = [];
+            let timestamp = new Date().toISOString();
+            timestamp = timestamp.replace(/:/g, '-');
+         
+            appendCard(timestamp, url);
+            // call saveRecording() here   
+            saveRecording(timestamp);
+   
 
-            let card = $('<div/>', { class: 'card' }).append(
-                $('<div/>', { class: 'audio-row' }).append(
-                    $('<audio/>', { controls: '' }).append(
-                        $('<source/>', { src: url, type: 'audio/mpeg' }),
-                        'Your browser does not support the audio element.'
-                    ),
-                    $('<p/>', { class: 'audio-metadata' }),
-                    $('<button/>', { class: 'transcript-btn', text: 'Transcript', click: showTranscript })
-                ),
-                $('<div/>', { class: 'transcript-row' }).append(
-                    $('<p/>', { class: 'transcript-text' })
-                ),
-                $('<div/>', { class: 'ipa-row' }).append(
-                    $('<p/>', { class: 'ipa-text' })
-                )
-            );
-
-            $('.container').append(card);
+            
         };
     })
     .catch(err => {
         console.error('getUserMedia() failed: ', err);
     });
 }
+
+//function to append card to container
+function appendCard(id, url=null) {
+
+    if(url==null){
+        url='/static/audios/'+id+'.mp3';
+
+    }
+    if(id==null){
+        // get id from url
+        id=url.split('/').pop().split('.')[0];
+    }
+    let card = $('<div/>', { class: 'card' }).append(
+        $('<div/>', { class: 'audio-row' }).append(
+            $('<audio/>', { controls: '' }).append(
+                $('<source/>', { src: url, type: 'audio/mpeg', id: id }),
+
+                
+                'Your browser does not support the audio element.'
+            ),
+            $('<p/>', { class: 'audio-metadata' }),
+            $('<button/>', { class: 'transcript-btn', text: 'Transcript', click: showTranscript })
+        ),
+        $('<div/>', { class: 'transcript-row' }).append(
+            $('<p/>', { class: 'transcript-text' })
+        ),
+        $('<div/>', { class: 'ipa-row' }).append(
+            $('<p/>', { class: 'ipa-text' })
+        )
+    );
+    
+    $('.container').append(card);
+}
+
+//function to save recording to server
+function saveRecording(id) {
+    //get audio element by id attribute
+    const audioElement = document.getElementById(id);   
+    // Get the URL of the audio blob
+    const url = audioElement.src;
+    // send blob to server
+    fetch(url)
+        .then(res => res.blob())
+        .then(blob => {
+            // Create a new FormData instance
+            let formData = new FormData();
+            
+            // Add the blob to the FormData instance
+            formData.append('audio', blob, id+'.mp3');
+            
+            // Define the options for the fetch request
+            let options = {
+                method: 'POST',
+                body: formData
+            };
+            
+            // Send the POST request
+            fetch('/saveAudio', options)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    // The response data from the API should be handled here.
+                    // This is where you would update the transcript and IPA fields.
+                    const transcriptText = $(this).parent().next().find('.transcript-text');
+                    const ipaText = transcriptText.parent().next().find('.ipa-text');
+                    transcriptText.text(data.transcript); // Assuming the response data has a 'transcript' field
+                    ipaText.text(data.ipa); // Assuming the response data has a 'ipa' field
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        }
+
+        );
+
+
+
+}
+
+
 
 function stopRecording() {
     if (mediaRecorder) {
@@ -128,6 +198,24 @@ function showTranscript_() {
 
 }
 
+// funtion to get all audio from server
+function getAudios() {
+    fetch('/getaudios')
+        .then(response => response.json())
+        .then(data => {
+            // The response data from the API should be handled here.
+            // This is where you would update the transcript and IPA fields.
+            console.log(data);
+            data=data.files;
+            for (let i = 0; i < data.length; i++) {
+                appendCard(null,data[i]);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
 
 function showTranscript() {
     const audioElement = $(this).parent().find('audio source');
@@ -165,3 +253,5 @@ function showTranscript() {
                 });
         });
 }
+// init with getAudios
+getAudios();

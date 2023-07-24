@@ -31,24 +31,49 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/save_audio', methods=['POST'])
-def save_audio():
+
+
+@app.route('/saveAudio', methods=['POST'])
+def saveAudio():
     audio_file = request.files['audio']
-    if audio_file:
-        # Get the path to the "static" folder
-        static_folder = os.path.join(os.path.dirname(__file__), 'static')
-        
-        # Save the audio file in the "static" folder
-        audio_path = os.path.join(static_folder, 'recorded_audio.webm')
-        audio_file.save(audio_path)
-        transcript=transcribeaudio(audio_path)
-        # Assuming you have already imported the necessary libraries for openai
-        
-        
-        # You can return the transcript text along with the audio URL
-        return jsonify({'audio_url': f'/static/recorded_audio.webm', 'transcript': transcript})
+    filename = audio_file.filename
     
-    return jsonify({'error': 'No audio data received'}), 400
+        # Get the path to the "static" folder
+    static_folder = os.path.join(os.path.dirname(__file__), 'static\\audios')
+    audio_file.save(os.path.join(static_folder, filename))
+    return {"status": "File saved."}, 200
+
+
+# get all audio files
+@app.route('/getaudios', methods=['GET'])
+def getaudios():
+    # get full path of audio files
+
+    static_folder = os.path.join(os.path.dirname(__file__), 'static\\audios')
+
+    # get all files in 'static/audios' folder
+    files = os.listdir(static_folder)
+    # for each file, preappend '/static/audios' to the filename 
+
+    files = [f'/static/audios/{file}' for file in files]
+    
+    return {"files": files}, 200   
+
+#get audio file by name
+@app.route('/static/audio/<filename>', methods=['GET'])
+def getaudio(filename):
+    # get full path of audio files
+
+    static_folder = os.path.join(os.path.dirname(__file__), 'static\\audios')
+
+    # get all files in 'static/audios' folder
+    files = os.listdir(static_folder)
+    # for each file, preappend '/static/audios' to the filename 
+
+    files = [f'/static/audios/{file}' for file in files]
+    
+    return {"files": files}, 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)
