@@ -39,7 +39,8 @@ def saveAudio():
     filename = audio_file.filename
     
         # Get the path to the "static" folder
-    static_folder = os.path.join(os.path.dirname(__file__), 'static\\audios')
+    static_folder = os.path.join(os.path.dirname(__file__), 'static')
+    static_folder= os.path.join(static_folder, 'audios')
     audio_file.save(os.path.join(static_folder, filename))
     return {"status": "File saved."}, 200
 
@@ -49,8 +50,9 @@ def saveAudio():
 def getaudios():
     # get full path of audio files
 
-    static_folder = os.path.join(os.path.dirname(__file__), 'static\\audios')
-
+        # Get the path to the "static" folder
+    static_folder = os.path.join(os.path.dirname(__file__), 'static')
+    static_folder= os.path.join(static_folder, 'audios')
     # get all files in 'static/audios' folder
     files = os.listdir(static_folder)
     # for each file, preappend '/static/audios' to the filename 
