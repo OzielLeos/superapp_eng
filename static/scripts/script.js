@@ -24,16 +24,16 @@ function togglePulsatingEffect() {
 }
 
 
-document.querySelectorAll('.transcript-btn').forEach(function(button) {
-    button.addEventListener('click', function() {
-        const transcriptText = button.parentElement.nextElementSibling.querySelector('.transcript-text');
-        const ipaText = transcriptText.parentElement.nextElementSibling.querySelector('.ipa-text');
-        const metadata = button.previousElementSibling; // get the metadata element
-        transcriptText.textContent = 'Transcription text goes here';
-        ipaText.textContent = 'IPA equivalent goes here';
-        metadata.textContent = 'Metadata goes here'; // add the metadata
-    });
-});
+// document.querySelectorAll('.transcript-btn').forEach(function(button) {
+//     button.addEventListener('click', function() {
+//         const transcriptText = button.parentElement.nextElementSibling.querySelector('.transcript-text');
+//         const ipaText = transcriptText.parentElement.nextElementSibling.querySelector('.ipa-text');
+//         const metadata = button.previousElementSibling; // get the metadata element
+//         transcriptText.textContent = 'Transcription text goes here';
+//         ipaText.textContent = 'IPA equivalent goes here';
+//         metadata.textContent = 'Metadata goes here'; // add the metadata
+//     });
+// });
 
 
 let mediaRecorder;
@@ -56,7 +56,8 @@ function startRecording() {
             let url = URL.createObjectURL(blob);
             recordedChunks = [];
             let timestamp = new Date().toISOString();
-            timestamp = timestamp.replace(/:/g, '-');
+            //replace all non-alphanumeric characters with dashes including colons and periods
+            timestamp = timestamp.replace(/[^a-zA-Z0-9]/g, '-');
          
             appendCard(timestamp, url);
             // call saveRecording() here   
@@ -91,7 +92,8 @@ function appendCard(id, url=null) {
                 'Your browser does not support the audio element.'
             ),
             $('<p/>', { class: 'audio-metadata' }),
-            $('<button/>', { class: 'transcript-btn', text: 'Transcript', click: showTranscript })
+            $('<button/>', { class: 'transcript-btn', text: 'Transcript' })
+            // $('<button/>', { class: 'transcript-btn', text: 'Transcript', click: showTranscript })
         ),
         $('<div/>', { class: 'transcript-row' }).append(
             $('<p/>', { class: 'transcript-text' })
@@ -216,7 +218,54 @@ function getAudios() {
         });
 }
 
+// jquey function when transcript button is clicked
+$(document).on('click', '.transcript-btn', function() {
+    //get audio element next to button
+    const audioElement = $(this).parent().find('audio source');
+    const id = audioElement.attr('id'); // Get the id of the audio blob
+    getTranscript(id);
 
+});
+
+//Get transcript from server sending audio id
+function getTranscript(id) {
+    fetch('/transcribe', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: id })
+    })
+        .then(response => response.json())
+        .then(data => {
+            // get transcript from json
+            transcript=data.transcript;
+            console.log(transcript);
+            // Obtener el elemento con el id "2023-07-24T03-03-34-197Z"
+            const audioElement = document.getElementById(id);
+
+            // Obtener el elemento "card" que contiene el elemento de audio
+            const cardElement = audioElement.parentNode.parentNode.parentNode;
+            // Obtener el elemento con la clase "transcript-text" dentro del "card"
+            // el simbolo mayor que ">" indica que solo se debe buscar dentro del elemento "card"
+            cardElement.querySelector('.transcript-row>.transcript-text').textContent=transcript;
+
+
+            const synth = window.speechSynthesis;
+            const utterance = new SpeechSynthesisUtterance(transcript);
+            synth.speak(utterance);
+
+
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+
+        
+        
+        /*
 function showTranscript() {
     const audioElement = $(this).parent().find('audio source');
     const url = audioElement.attr('src'); // Get the URL of the audio blob
@@ -253,5 +302,10 @@ function showTranscript() {
                 });
         });
 }
+*/
+
 // init with getAudios
 getAudios();
+
+
+

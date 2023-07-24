@@ -14,24 +14,44 @@ import os
 from flask import Flask, render_template, request, jsonify
 
 import openai
-openai.api_key = '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'
+openai.api_key = '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'
 
 app = Flask(__name__)
 
 def transcribeaudio(audio_path):
-    
-    return 'sample'
+   
     audio_file = open(audio_path, "rb")
+    #return audio_path
     transcript = openai.Audio.transcribe("whisper-1", audio_file)
+
+    response = openai.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=[
+        {
+        "role": "system",
+        "content": "You will be provided with a sentence in spanish, and your task is to translate it into english."
+        },
+        {
+        "role": "user",
+        "content":  transcript['text']
+        }
+    ],
+    temperature=0,
+    max_tokens=256
+    )
+
+    transcribe= transcript['text']
+    traduction=  response["choices"][0]["message"]["content"]
+    #concat transcribe , break line and traduction
+    return traduction
+    return  transcribe + '\n' + traduction
+
     print(transcript['text'])
     return transcript['text']
 
 @app.route('/')
 def index():
     return render_template('index.html')
-
-
-
 
 @app.route('/saveAudio', methods=['POST'])
 def saveAudio():
@@ -44,6 +64,29 @@ def saveAudio():
     audio_file.save(os.path.join(static_folder, filename))
     return {"status": "File saved."}, 200
 
+# transcribe audio file
+# return transcript
+# recieve audio file name   
+@app.route('/transcribe', methods=['POST'])
+def transcribe():
+# get id from json request
+    id = request.json['id']
+    #get full path of audio file
+    audio_path = os.path.join(os.path.dirname(__file__), 'static')
+    audio_path = os.path.join(audio_path, 'audios')
+  
+    audio_path = os.path.join(audio_path, id + '.mp3')
+    
+
+
+    # get transcript
+    transcript = transcribeaudio(audio_path)
+    # return json response
+    return {"transcript": transcript}, 200
+
+
+
+   
 
 # get all audio files
 @app.route('/getaudios', methods=['GET'])
